@@ -8,7 +8,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include <time.h>
+#include <chrono>
 #include <random>
 
 class Screen
@@ -204,7 +204,10 @@ void Screen::getPoints(std::vector<std::vector<int>> &v, int n)
 
 void Screen::generateColors(Uint8 &red, Uint8 &green, Uint8 &blue)
 {
-    int elapsed = SDL_GetTicks();
+    unsigned rd = std::chrono::system_clock::now().time_since_epoch().count();
+    std::mt19937 rng(rd);
+    std::uniform_int_distribution<int> random(0, 255);
+    int elapsed = random(rng);
     red = (1 + sin(elapsed * 0.0001)) * 128;
     green = (1 + sin(elapsed * 0.0002)) * 128;
     blue = (1 + sin(elapsed * 0.0003)) * 128;
@@ -213,17 +216,20 @@ void Screen::generateColors(Uint8 &red, Uint8 &green, Uint8 &blue)
 void Screen::drawLine(std::vector<std::pair<int, int>> &points, std::vector<std::vector<int>> &v)
 {
     clear();
-    Uint8 red;
-    Uint8 green;
-    Uint8 blue;
+    Uint8 red = 255;
+    Uint8 green = 0;
+    Uint8 blue = 0;
     int vertice = points.size();
     int edge = v.size();
 
     for (size_t i = 0; i < points.size() - 1; i++)
     {
         generateColors(red, green, blue);
+        // printf("%d, %d, %d", red, green, blue);
+        SDL_SetRenderDrawColor(gRenderer, red, green, blue, SDL_ALPHA_OPAQUE);
         SDL_RenderDrawLine(gRenderer, points[i].first, points[i].second, points[i + 1].first, points[i + 1].second);
     }
+    SDL_RenderPresent(gRenderer);
 }
 
 void Screen::eventManager()

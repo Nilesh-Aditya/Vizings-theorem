@@ -6,7 +6,6 @@ int main()
     std::cout << "Enter Number of vertices : " << std::endl;
     int n;
     std::cin >> n;
-    // std::vector<std::vector<int>> v;
     std::cout << "Enter number of edges : " << std::endl;
     int edge;
     std::cin >> edge;
