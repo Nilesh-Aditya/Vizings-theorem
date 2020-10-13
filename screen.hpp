@@ -1,46 +1,45 @@
 #pragma once
+#ifdef _WIN32
+#include "SDL.h"
+#else
 #include "SDL2/SDL.h"
+#endif
+
 #include <iostream>
 #include <vector>
-#include <unordered_map>
+#include <algorithm>
 #include <time.h>
+#include <random>
 
 class Screen
 {
 public:
     Uint32 SCREEN_HEIGHT = 633;
     Uint32 SCREEN_WIDTH = 480;
-    Screen() : gScreenSurface(NULL), gCurrentSurface(NULL), m_window(NULL), gRenderer(NULL) {}
-    void initialisation();
+    Screen() : gScreenSurface(nullptr), gCurrentSurface(nullptr), m_window(nullptr), gRenderer(nullptr) {}
+    void initialisation(int n, int edge, std::vector<std::vector<int>> &v);
     bool init();
     void getPoints(std::vector<std::vector<int>> &v, int n);
-    void drawLine(std::unordered_map<int, int> &mp, std::vector<std::vector<int>> &v);
+    void drawLine(std::vector<std::pair<int, int>> &points, std::vector<std::vector<int>> &v);
     void generateColors(Uint8 &red, Uint8 &green, Uint8 &blue);
     void update();
     void close();
     void clear();
+    void eventManager();
     void degree(int v, int e, std::vector<std::vector<int>> &edg);
     void colorEdge(std::vector<std::vector<int>> &edg, int e);
+    bool quit = false;
 
 private:
     SDL_Surface *gScreenSurface;
     SDL_Surface *gCurrentSurface;
     SDL_Window *m_window;
     SDL_Renderer *gRenderer;
-    std::vector<std::vector<int>> v;
 };
 
-void Screen::initialisation()
+void Screen::initialisation(int n, int edge, std::vector<std::vector<int>> &v)
 {
-    srand(time(NULL));
-    std::cout << "Enter Number of vertices : " << std::endl;
-    int n;
-    std::cin >> n;
-    // std::vector<std::vector<int>> v;
-    std::cout << "Enter number of edges : " << std::endl;
-    int edge;
-    std::cin >> edge;
-
+    // srand(time(nullptr));
     int j = edge;
     int i = 1;
     int ctr = 1;
@@ -99,7 +98,7 @@ void Screen::degree(int v, int e, std::vector<std::vector<int>> &edg)
                   << edg[i][1] << " is: color " << edg[i][2];
     std::cout << std::endl;
 
-    getPoints(edg, v);
+    // getPoints(edg, v);
 }
 
 void Screen::colorEdge(std::vector<std::vector<int>> &edg, int e)
@@ -156,7 +155,7 @@ bool Screen::init()
     {
         //Create window
         m_window = SDL_CreateWindow("VIZING'S THEOREM (DISCRETE PROJECT)", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-        if (m_window == NULL)
+        if (m_window == nullptr)
         {
             printf("Window could not be created! SDL Error: %s\n", SDL_GetError());
             success = false;
@@ -176,22 +175,31 @@ void Screen::getPoints(std::vector<std::vector<int>> &v, int n)
 {
     int edges = v.size();
     int k = n;
-    std::unordered_map<int, int> mp;
+    int i = 0;
+    std::vector<std::pair<int, int>> points(k);
+    std::random_device rd;
+    std::mt19937 rng(rd());
     while (k)
     {
-        Uint32 RAND_X = (rand() / RAND_MAX) * SCREEN_WIDTH;
-        Uint32 RAND_Y = (rand() / RAND_MAX) * SCREEN_HEIGHT;
-        auto it = mp.find(RAND_X);
-        if (it != mp.end())
+        std::uniform_int_distribution<int> RAND_X(5, SCREEN_WIDTH - 10);
+        std::uniform_int_distribution<int> RAND_Y(5, SCREEN_HEIGHT - 10);
+        // Uint32 RAND_Y = (rand() / RAND_MAX) * SCREEN_HEIGHT;
+        int x = RAND_X(rng);
+        int y = RAND_Y(rng);
+        auto p = std::make_pair(x, y);
+        auto it = std::find_if(points.begin(), points.end(), [&p](const std::pair<int, int> &element) { return element.first == p.first; });
+        if (it == points.end())
         {
-            mp[RAND_X] = RAND_Y;
+            points[i].first = x;
+            points[i].second = y;
+            i++;
             k--;
         }
         else
             continue;
     }
 
-    drawLine(mp, v);
+    drawLine(points, v);
 };
 
 void Screen::generateColors(Uint8 &red, Uint8 &green, Uint8 &blue)
@@ -202,12 +210,34 @@ void Screen::generateColors(Uint8 &red, Uint8 &green, Uint8 &blue)
     blue = (1 + sin(elapsed * 0.0003)) * 128;
 }
 
-void Screen::drawLine(std::unordered_map<int, int> &mp, std::vector<std::vector<int>> &v)
+void Screen::drawLine(std::vector<std::pair<int, int>> &points, std::vector<std::vector<int>> &v)
 {
     clear();
     Uint8 red;
     Uint8 green;
     Uint8 blue;
+    int vertice = points.size();
+    int edge = v.size();
+
+    for (size_t i = 0; i < points.size() - 1; i++)
+    {
+        generateColors(red, green, blue);
+        SDL_RenderDrawLine(gRenderer, points[i].first, points[i].second, points[i + 1].first, points[i + 1].second);
+    }
+}
+
+void Screen::eventManager()
+{
+    SDL_Event e;
+
+    while (SDL_PollEvent(&e) != 0)
+    {
+        //User requests quit
+        if (e.type == SDL_QUIT)
+        {
+            Screen::quit = true;
+        }
+    }
 }
 
 void Screen::clear()
@@ -220,7 +250,7 @@ void Screen::close()
 {
     SDL_DestroyRenderer(gRenderer);
     SDL_DestroyWindow(m_window);
-    m_window = NULL;
-    gRenderer = NULL;
+    m_window = nullptr;
+    gRenderer = nullptr;
     SDL_Quit();
 }
