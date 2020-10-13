@@ -3,10 +3,10 @@
 int main()
 {
     Screen screen;
-    screen.initialisation();
 
     if (screen.init())
     {
+        screen.initialisation();
     }
 
     return 0;
