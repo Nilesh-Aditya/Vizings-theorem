@@ -8,19 +8,19 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include <chrono>
 #include <random>
+#include <cmath>
 
 class Screen
 {
 public:
     Uint32 SCREEN_HEIGHT = 633;
-    Uint32 SCREEN_WIDTH = 480;
+    Uint32 SCREEN_WIDTH = 633;
     Screen() : gScreenSurface(nullptr), gCurrentSurface(nullptr), m_window(nullptr), gRenderer(nullptr) {}
     void initialisation(int n, int edge, std::vector<std::vector<int>> &v);
     bool init();
     void getPoints(std::vector<std::vector<int>> &v, int n);
-    void drawLine(std::vector<std::pair<int, int>> &points, std::vector<std::vector<int>> &v);
+    void drawLine(std::vector<std::pair<float, float>> &points, std::vector<std::vector<int>> &v);
     void generateColors(Uint8 &red, Uint8 &green, Uint8 &blue);
     void update();
     void close();
@@ -164,7 +164,7 @@ bool Screen::init()
         {
             //Initialize PNG loading
             gRenderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED);
-            SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+            SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF);
         }
     }
 
@@ -176,27 +176,18 @@ void Screen::getPoints(std::vector<std::vector<int>> &v, int n)
     int edges = v.size();
     int k = n;
     int i = 0;
-    std::vector<std::pair<int, int>> points(k);
-    std::random_device rd;
-    std::mt19937 rng(rd());
+    std::vector<std::pair<float, float>> points(k);
+    int x = 100;
+    float r = 200;
+
     while (k)
     {
-        std::uniform_int_distribution<int> RAND_X(5, SCREEN_WIDTH - 10);
-        std::uniform_int_distribution<int> RAND_Y(5, SCREEN_HEIGHT - 10);
-        // Uint32 RAND_Y = (rand() / RAND_MAX) * SCREEN_HEIGHT;
-        int x = RAND_X(rng);
-        int y = RAND_Y(rng);
-        auto p = std::make_pair(x, y);
-        auto it = std::find_if(points.begin(), points.end(), [&p](const std::pair<int, int> &element) { return element.first == p.first; });
-        if (it == points.end())
-        {
-            points[i].first = x;
-            points[i].second = y;
-            i++;
-            k--;
-        }
-        else
-            continue;
+        float angle = (i * 2 * M_PI) / n;
+        points[i].first = SCREEN_WIDTH / 2 + r * std::cos(angle);
+        points[i].second = SCREEN_HEIGHT / 2 + r * std::sin(angle);
+        // std::cout << points[i].first << "," << points[i].second << std::endl;
+        i++;
+        k--;
     }
 
     drawLine(points, v);
@@ -204,30 +195,49 @@ void Screen::getPoints(std::vector<std::vector<int>> &v, int n)
 
 void Screen::generateColors(Uint8 &red, Uint8 &green, Uint8 &blue)
 {
-    unsigned rd = std::chrono::system_clock::now().time_since_epoch().count();
-    std::mt19937 rng(rd);
+    std::random_device rd;
+    std::mt19937 rng(rd());
     std::uniform_int_distribution<int> random(0, 255);
-    int elapsed = random(rng);
-    red = (1 + sin(elapsed * 0.0001)) * 128;
-    green = (1 + sin(elapsed * 0.0002)) * 128;
-    blue = (1 + sin(elapsed * 0.0003)) * 128;
+    int r = random(rng);
+    int g = random(rng);
+    int b = random(rng);
+    // red = (red == r) ? red + 30 : r;
+    // green = (green == g) ? green + 40 : g;
+    // blue = (blue == b) ? blue + 50 : b;
+    red = r;
+    blue = b;
+    green = g;
 }
 
-void Screen::drawLine(std::vector<std::pair<int, int>> &points, std::vector<std::vector<int>> &v)
+void Screen::drawLine(std::vector<std::pair<float, float>> &points, std::vector<std::vector<int>> &v)
 {
     clear();
-    Uint8 red = 255;
+    Uint8 red = 0;
     Uint8 green = 0;
     Uint8 blue = 0;
     int vertice = points.size();
     int edge = v.size();
+    std::vector<bool> check(edge, true);
 
-    for (size_t i = 0; i < points.size() - 1; i++)
+    for (size_t i = 0; i < v.size(); i++)
     {
         generateColors(red, green, blue);
-        // printf("%d, %d, %d", red, green, blue);
+        // std::cout << red << "," << green << "," << blue << std::endl;
         SDL_SetRenderDrawColor(gRenderer, red, green, blue, SDL_ALPHA_OPAQUE);
-        SDL_RenderDrawLine(gRenderer, points[i].first, points[i].second, points[i + 1].first, points[i + 1].second);
+        if (check[i])
+        {
+            SDL_RenderDrawLine(gRenderer, points[v[i][0] - 1].first, points[v[i][0] - 1].second, points[v[i][1] - 1].first, points[v[i][1] - 1].second);
+            check[i] = false;
+            int temp = v[i][2];
+            for (size_t j = 0; j < v.size(); j++)
+            {
+                if (j != i && v[j][2] == temp)
+                {
+                    SDL_RenderDrawLine(gRenderer, points[v[j][0] - 1].first, points[v[j][0] - 1].second, points[v[j][1] - 1].first, points[v[j][1] - 1].second);
+                    check[j] = false;
+                }
+            }
+        }
     }
     SDL_RenderPresent(gRenderer);
 }
@@ -248,7 +258,7 @@ void Screen::eventManager()
 
 void Screen::clear()
 {
-    SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+    SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF);
     SDL_RenderClear(gRenderer);
 }
 
