@@ -5,4 +5,4 @@ OBJ_NAME = main
 
 #This is the target that compiles our executable
 all : $(OBJS) 
-	g++ $(OBJS) -std=c++17 -w -lSDL2 -o $(OBJ_NAME)
+	g++ $(OBJS) -std=c++17 -w -lSDL2 -lSDL2_ttf -o $(OBJ_NAME)

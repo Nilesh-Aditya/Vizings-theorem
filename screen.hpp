@@ -1,8 +1,11 @@
 #pragma once
 #ifdef _WIN32
-#include "SDL.h"
+#include <SDL.h>
+#include <SDL_ttf.h>
+
 #else
-#include "SDL2/SDL.h"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #endif
 
 #include <iostream>
@@ -14,9 +17,9 @@
 class Screen
 {
 public:
-    Uint32 SCREEN_HEIGHT = 633;
-    Uint32 SCREEN_WIDTH = 633;
-    Screen() : gScreenSurface(nullptr), gCurrentSurface(nullptr), m_window(nullptr), gRenderer(nullptr) {}
+    const Uint32 SCREEN_HEIGHT = 633;
+    const Uint32 SCREEN_WIDTH = 633;
+    Screen() : gScreenSurface(nullptr), gCurrentSurface(nullptr), m_window(nullptr), m_renderer(nullptr), m_texture(nullptr), gFont(nullptr) {}
     void initialisation(int n, int edge, std::vector<std::vector<int>> &v);
     bool init();
     void getPoints(std::vector<std::vector<int>> &v, int n);
@@ -29,12 +32,15 @@ public:
     void degree(int v, int e, std::vector<std::vector<int>> &edg);
     void colorEdge(std::vector<std::vector<int>> &edg, int e);
     bool quit = false;
+    void rendering_text(std::string text, int size, int x, int y, int red = 0xFF, int green = 0xFF, int blue = 0xFF);
 
 private:
     SDL_Surface *gScreenSurface;
     SDL_Surface *gCurrentSurface;
     SDL_Window *m_window;
-    SDL_Renderer *gRenderer;
+    SDL_Renderer *m_renderer;
+    SDL_Texture *m_texture;
+    TTF_Font *gFont;
 };
 
 void Screen::initialisation(int n, int edge, std::vector<std::vector<int>> &v)
@@ -163,9 +169,10 @@ bool Screen::init()
         else
         {
             //Initialize PNG loading
-            gRenderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED);
-            SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF);
+            m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED);
+            SDL_SetRenderDrawColor(m_renderer, 0x00, 0x00, 0x00, 0xFF);
         }
+        TTF_Init();
     }
 
     return success;
@@ -223,23 +230,29 @@ void Screen::drawLine(std::vector<std::pair<float, float>> &points, std::vector<
     {
         generateColors(red, green, blue);
         // std::cout << red << "," << green << "," << blue << std::endl;
-        SDL_SetRenderDrawColor(gRenderer, red, green, blue, SDL_ALPHA_OPAQUE);
+        SDL_SetRenderDrawColor(m_renderer, red, green, blue, SDL_ALPHA_OPAQUE);
         if (check[i])
         {
-            SDL_RenderDrawLine(gRenderer, points[v[i][0] - 1].first, points[v[i][0] - 1].second, points[v[i][1] - 1].first, points[v[i][1] - 1].second);
+            SDL_RenderDrawLine(m_renderer, points[v[i][0] - 1].first, points[v[i][0] - 1].second, points[v[i][1] - 1].first, points[v[i][1] - 1].second);
+            int x_mid = (points[v[i][0] - 1].first + points[v[i][1] - 1].first) / 2;
+            int y_mid = (points[v[i][0] - 1].second + points[v[i][1] - 1].second) / 2;
+            rendering_text("c" + std::to_string(v[i][2]), 28, x_mid, y_mid);
             check[i] = false;
             int temp = v[i][2];
             for (size_t j = 0; j < v.size(); j++)
             {
                 if (j != i && v[j][2] == temp)
                 {
-                    SDL_RenderDrawLine(gRenderer, points[v[j][0] - 1].first, points[v[j][0] - 1].second, points[v[j][1] - 1].first, points[v[j][1] - 1].second);
+                    SDL_RenderDrawLine(m_renderer, points[v[j][0] - 1].first, points[v[j][0] - 1].second, points[v[j][1] - 1].first, points[v[j][1] - 1].second);
+                    int mid_x = (points[v[j][0] - 1].first + points[v[j][1] - 1].first) / 2;
+                    int mid_y = (points[v[j][0] - 1].second + points[v[j][1] - 1].second) / 2;
+                    rendering_text("c" + std::to_string(v[i][2]), 28, mid_x, mid_y);
                     check[j] = false;
                 }
             }
         }
     }
-    SDL_RenderPresent(gRenderer);
+    SDL_RenderPresent(m_renderer);
 }
 
 void Screen::eventManager()
@@ -258,15 +271,32 @@ void Screen::eventManager()
 
 void Screen::clear()
 {
-    SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF);
-    SDL_RenderClear(gRenderer);
+    SDL_SetRenderDrawColor(m_renderer, 0x00, 0x00, 0x00, 0xFF);
+    SDL_RenderClear(m_renderer);
 }
 
 void Screen::close()
 {
-    SDL_DestroyRenderer(gRenderer);
+    SDL_DestroyTexture(m_texture);
+    m_texture = nullptr;
+    TTF_CloseFont(gFont);
+    SDL_DestroyRenderer(m_renderer);
     SDL_DestroyWindow(m_window);
     m_window = nullptr;
-    gRenderer = nullptr;
+    m_renderer = nullptr;
     SDL_Quit();
+}
+
+void Screen::rendering_text(std::string text, int size, int x, int y, int red /* = 0xFF*/, int green /*= 0xFF*/, int blue /*= 0xFF*/)
+{
+    gFont = TTF_OpenFont("oswald/Oswald-Medium.ttf", size);
+    SDL_Color textColor = {red, green, blue};
+
+    SDL_Surface *textSurface = TTF_RenderText_Solid(gFont, text.c_str(), textColor);
+    m_texture = SDL_CreateTextureFromSurface(m_renderer, textSurface);
+    int width = textSurface->w;
+    int height = textSurface->h;
+    SDL_Rect textRect = {x - width / 2, y - height / 2, width, height};
+    SDL_RenderCopy(m_renderer, m_texture, 0, &textRect);
+    SDL_FreeSurface(textSurface);
 }
