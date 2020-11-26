@@ -1,6 +1,6 @@
 # Vizings-theorem
 
-SDL implementation 
+SDL2 implementation 
 
 ## IN LINUX
 
