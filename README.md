@@ -2,16 +2,14 @@
 
 SDL implementation 
 
-## Work in progress....
-## To do
+## IN LINUX
 
-~~1. Create screen class~~
+1. Run make file
 
-~~2. Initialisation~~
-
-~~3. generate polygon
-(using convex hull or normal sorting)~~
-
-~~4. separate lines using colors~~
-
-5. labelling
+```bash
+make
+```
+2. Run the actual program
+```bash
+./main
+```
