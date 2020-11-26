@@ -1,2 +1,7 @@
 /.vscode
 oswald.zip
+*.docx
+*.pdf
+*.rar
+*.zip
+project.py
