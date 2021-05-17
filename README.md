@@ -1,4 +1,4 @@
-# Vizings-theorem
+# Vizings-theorem-implementation
 
 SDL2 implementation 
 
